@@ -3,13 +3,18 @@
 # install cli for aws 
 # aws configure 
 
-
 import boto3
 
-s3 = boto3.resource('s3')
+client = boto3.client('s3')
 
-# Print out bucket names
-for bucket in s3.buckets.all():
-    print(bucket.name)
+response = client.create_bucket(
+    Bucket='dipsbhaikipehlibucket',
+     CreateBucketConfiguration={
+        'LocationConstraint': 'ap-south-1',
+    },
+)
+
+print(response)
+
 
 print("End of script")
