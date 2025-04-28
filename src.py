@@ -8,9 +8,9 @@ def create_s3_bucket(bucket_name):
         # Create the bucket
         response = s3_client.create_bucket(
             Bucket=bucket_name,
-             CreateBucketConfiguration={
-        'LocationConstraint': 'ap-south-1',
-    },
+            CreateBucketConfiguration={
+                'LocationConstraint': 'ap-south-1',
+            },
         )
         print(f"Bucket {bucket_name} created successfully.")
     except Exception as e:
