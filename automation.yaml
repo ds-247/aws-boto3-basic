@@ -13,3 +13,42 @@ Resources:
     DeletionPolicy: Delete
     Properties:
       BucketName: dst-bkt-04-28
+
+  LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Role: arn:aws:iam::194325853642:role/lambda-s3-access-role # IAM role that Lambda will use
+      Handler: index.lambda_handler # Entry point: fileName.functionName
+      Code:
+        ZipFile: |
+          import boto3
+          import urllib.parse
+
+          s3 = boto3.client('s3')
+
+          def lambda_handler(event, context):
+            source_bucket= event['Records'][0]['s3']['bucket']['name']
+            source_key = urllib.parse.unquote_plus(event['Records'][0]['s3']['object']['key'], encoding='utf-8')
+
+            destination_bucket = 'dst-bkt-04-28' 
+
+            try:
+              copy_source = {
+                  'Bucket': source_bucket,
+                  'Key': source_key
+              }
+
+              s3.copy(CopySource=copy_source, Bucket=destination_bucket, Key= source_key)
+              print(f'Copied {source_bucket}/{source_key} to {destination_bucket}/{source_key}')
+
+            except Exception as e:
+                print(f'Error copying object: {e}')
+
+  LambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt LambdaFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: s3.amazonaws.com
+      SourceArn: !GetAtt SrcBucket.Arn
