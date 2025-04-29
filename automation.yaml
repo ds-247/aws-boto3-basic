@@ -7,6 +7,10 @@ Resources:
     DeletionPolicy: Delete
     Properties:
       BucketName: src-bkt-04-28
+      NotificationConfiguration:
+        LambdaConfigurations:
+          - Event: s3:ObjectCreated:*
+            Function: !GetAtt LambdaFunction.Arn
 
   DestBucket:
     Type: "AWS::S3::Bucket"
