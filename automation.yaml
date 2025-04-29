@@ -52,3 +52,43 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: s3.amazonaws.com
       SourceArn: !GetAtt SrcBucket.Arn
+
+  S3NotificationCustomResourceLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Role: arn:aws:iam::194325853642:role/lambda-s3-access-role
+      Handler: index.handler
+      Timeout: 60
+      Code:
+        ZipFile: |
+          import boto3
+          import cfnresponse
+
+          def handler(event, context):
+              s3 = boto3.client('s3')
+              props = event['ResourceProperties']
+              try:
+                  s3.put_bucket_notification_configuration(
+                      Bucket=props['BucketName'],
+                      NotificationConfiguration={
+                          'LambdaFunctionConfigurations': [
+                              {
+                                  'LambdaFunctionArn': props['LambdaArn'],
+                                  'Events': ['s3:ObjectCreated:*']
+                              }
+                          ]
+                      }
+                  )
+                  cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
+              except Exception as e:
+                  cfnresponse.send(event, context, cfnresponse.FAILED, {'Message': str(e)})
+
+  AttachLambdaToS3:
+    Type: Custom::S3Notification
+    DependsOn:
+      - LambdaInvokePermission
+    Properties:
+      ServiceToken: !GetAtt S3NotificationCustomResourceLambda.Arn
+      BucketName: !Ref SrcBucket
+      LambdaArn: !GetAtt LambdaFunction.Arn
