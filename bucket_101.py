@@ -57,6 +57,31 @@ def upload_file_to_bucket(s3_client, file_path, bucket_name,  custom_tag, metada
         print(f"Error uploading file: {e}")
 
 
+def filter_objects(objects_data, tag_type, tag_value):
+    filtered_objects = []
+
+    for obj in objects_data:
+        tags = obj.get('Tags', {})
+        if tag_type in tags and tags[tag_type] == tag_value :
+            filtered_objects.append({'Key': obj['Key']})
+
+    return filtered_objects
+
+
+def delete_object(s3_client, bucket_name, object_list):
+    try:
+        response = s3_client.delete_objects(
+            Bucket=bucket_name,
+            Delete={
+                'Objects': object_list
+            },
+        )
+
+        print(f"Objects deleted successfully: {response}")
+    except ClientError as e:
+        print(f"Error deleting object: {e}")
+
+
 def delete_bucket(s3_client, bucket_name):
     try:
         s3_client.delete_bucket(Bucket=bucket_name)
@@ -76,6 +101,7 @@ def list_buckets(s3_client):
 
 
 def list_bucket_objects(s3_client, bucket_name):
+    objects_data = []
     try:
         response = s3_client.list_objects(Bucket=bucket_name)
 
@@ -104,10 +130,13 @@ def list_bucket_objects(s3_client, bucket_name):
                         object_info['Tags'] = {}
 
                 print(f"  Key: {object_key}, Metadata: {object_info['Metadata']}, Tags: {object_info['Tags']}")
+                objects_data.append(object_info)
         else:
             print(f"No objects found in bucket {bucket_name}.")
     except ClientError as e:
         print(f"Error listing objects in bucket: {e}")
+
+    return objects_data
 
 
 def main() :
@@ -117,7 +146,9 @@ def main() :
     # upload_file_to_bucket(s3_client, './files/temp1.txt', bucket_name, 'mytag=tag1', {'meta-key': 'meta-value'})
 
     # list_buckets(s3_client)
-    list_bucket_objects(s3_client, bucket_name)
+    objects_data = list_bucket_objects(s3_client, bucket_name)
+    objects_to_delete = filter_objects(objects_data, 'type', 'odd')
+    delete_object(s3_client, bucket_name, objects_to_delete)
     
 
 if __name__ == "__main__":
