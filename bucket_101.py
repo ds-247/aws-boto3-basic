@@ -16,6 +16,27 @@ def create_bucket(s3_client, bucket_name, region):
         print(f"Error creating bucket: {e}")
 
 
+def upload_files(s3_client, bucket_name, number_of_files=2000):
+    for i in range(1, number_of_files + 1 ):
+        object_key = f'temp_file_{i}.txt'
+        content = f'This is random text for file temp_file_{i}'
+
+        tag_value = 'even' if i % 2 == 0 else 'odd'
+        tags = f'number={i}&type={tag_value}'
+
+        metadata = {'number':str(i), 'description': 'temp file upload'}
+
+        s3_client.put_object(
+            Bucket=bucket_name,
+            Key=object_key,
+            Body=content,
+            Tagging=tags,
+            Metadata=metadata
+        )
+
+        print(f'Uploaded {object_key} with {tags}')
+
+
 def upload_file_to_bucket(s3_client, file_path, bucket_name,  custom_tag, metadata, object_name=None,):
     if not os.path.exists(file_path):
         print(f"File not found: {file_path}")
@@ -52,6 +73,7 @@ def list_buckets(s3_client):
             print(f"  {bucket['Name']}")
     except ClientError as e:
         print(f"Error listing buckets: {e}")
+
 
 def list_bucket_objects(s3_client, bucket_name):
     try:
@@ -90,7 +112,8 @@ def list_bucket_objects(s3_client, bucket_name):
 
 def main() :
     s3_client = boto3.client('s3', region_name=region)
-    # create_bucket(s3_client, bucket_name, region)
+    create_bucket(s3_client, bucket_name, region)
+    upload_files(s3_client, bucket_name, 100)
     # upload_file_to_bucket(s3_client, './files/temp1.txt', bucket_name, 'mytag=tag1', {'meta-key': 'meta-value'})
 
     # list_buckets(s3_client)
