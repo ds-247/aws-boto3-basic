@@ -1,23 +1,37 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: CloudFormation Template for creating two S3 buckets
 
+Parameters:
+  SrcBucketName:
+    Type: String
+    Default: src-bkt-04-28
+    Description: Name of the source S3 bucket
+
+  DestBucketName:
+    Type: String
+    Default: dst-bkt-04-28
+    Description: Name of the destination S3 bucket
+
+  LambdaRuntimeVersion:
+    Type: String
+    Default: python3.12
+    Description: Lambda runtime version to use.
+
 Resources:
   SrcBucket:
     Type: "AWS::S3::Bucket"
-    DeletionPolicy: Delete
     Properties:
-      BucketName: src-bkt-04-28
+      BucketName: !Ref SrcBucketName
 
   DestBucket:
     Type: "AWS::S3::Bucket"
-    DeletionPolicy: Delete
     Properties:
-      BucketName: dst-bkt-04-28
+      BucketName: !Ref DestBucketName
 
   LambdaFunction:
     Type: AWS::Lambda::Function
     Properties:
-      Runtime: python3.12
+      Runtime: !Ref LambdaRuntimeVersion
       Role: arn:aws:iam::194325853642:role/lambda-s3-access-role # IAM role that Lambda will use
       Handler: index.lambda_handler # Entry point: fileName.functionName
       Code:
@@ -56,7 +70,7 @@ Resources:
   S3NotificationCustomResourceLambda:
     Type: AWS::Lambda::Function
     Properties:
-      Runtime: python3.12
+      Runtime: !Ref LambdaRuntimeVersion
       Role: arn:aws:iam::194325853642:role/lambda-s3-access-role
       Handler: index.handler
       Timeout: 60
