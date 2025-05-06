@@ -17,6 +17,7 @@ Parameters:
     Default: python3.12
     Description: Lambda runtime version to use.
 
+
 Resources:
   SrcBucket:
     Type: "AWS::S3::Bucket"
@@ -34,10 +35,14 @@ Resources:
       Runtime: !Ref LambdaRuntimeVersion
       Role: arn:aws:iam::194325853642:role/lambda-s3-access-role # IAM role that Lambda will use
       Handler: index.lambda_handler # Entry point: fileName.functionName
+      Environment:
+        Variables:
+          DEST_BUCKET: !Ref DestBucketName
       Code:
         ZipFile: |
           import boto3
           import urllib.parse
+          import os
 
           s3 = boto3.client('s3')
 
@@ -45,7 +50,7 @@ Resources:
             source_bucket= event['Records'][0]['s3']['bucket']['name']
             source_key = urllib.parse.unquote_plus(event['Records'][0]['s3']['object']['key'], encoding='utf-8')
 
-            destination_bucket = 'dst-bkt-04-28' 
+            destination_bucket = os.environ['DEST_BUCKET']
 
             try:
               copy_source = {
@@ -53,11 +58,16 @@ Resources:
                   'Key': source_key
               }
 
-              s3.copy(CopySource=copy_source, Bucket=destination_bucket, Key= source_key)
+              response = s3.copy(CopySource=copy_source, Bucket=destination_bucket, Key= source_key)
+
+              if response['ResponseMetadata']['HTTPStatusCode'] != 200:
+                raise Exception(f"Failed to copy file: {response}")
+
               print(f'Copied {source_bucket}/{source_key} to {destination_bucket}/{source_key}')
 
             except Exception as e:
                 print(f'Error copying object: {e}')
+                raise e
 
   LambdaInvokePermission:
     Type: AWS::Lambda::Permission
