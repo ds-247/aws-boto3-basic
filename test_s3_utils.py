@@ -12,7 +12,7 @@ from s3_utils import (
 
 BUCKET_NAME = 'test-bucket'
 REGION = 'ap-south-1'
-NUM_OF_FILES = 5
+NUM_OF_FILES = 2000
 TAG_KEY = 'type'
 TAG_VALUE_ODD = 'odd'
 TAG_VALUE_EVEN = 'even'

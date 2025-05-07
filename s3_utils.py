@@ -3,7 +3,7 @@ from botocore.exceptions import ClientError
 
 BUCKET_NAME = 'test-bucket-04-30'
 REGION = 'ap-south-1'
-NUM_OF_FILES = 5
+NUM_OF_FILES = 2000
 FILE_PREFIX = 'temp_file_'
 FILE_CONTENT_PREFIX = 'This is random text for file '
 TAG_KEY_TYPE = 'type'
