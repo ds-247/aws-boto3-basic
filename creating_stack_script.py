@@ -27,26 +27,40 @@ cf = boto3.client('cloudformation', region_name=REGION)
 
 def create_s3_bucket(bucket_name, region):
     try:
-        response = s3.create_bucket(
+        s3.create_bucket(
             Bucket=bucket_name,
             CreateBucketConfiguration={'LocationConstraint': region},
         )
-        print(f"Bucket {bucket_name} created:", response)
+        print(f"Bucket {bucket_name} created:")
+        return True
     except Exception as e:
         print(f"Error creating bucket {bucket_name}: {e}")
+        return False
 
 
 def zip_lambda_function():
-    with zipfile.ZipFile(ZIP_FILE, 'w', zipfile.ZIP_DEFLATED) as zipf:
-        zipf.write(LAMBDA_HANDLER_FILE)
-    print(f"Zipped {LAMBDA_HANDLER_FILE} to {ZIP_FILE}")
+    try:
+        with zipfile.ZipFile(ZIP_FILE, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            zipf.write(LAMBDA_HANDLER_FILE)
+        print(f"Zipped {LAMBDA_HANDLER_FILE} to {ZIP_FILE}")
+        return True
+    except Exception as e:
+        print(f"Error zipping {LAMBDA_HANDLER_FILE}: {e}")
+        return False
 
 
 def upload_to_s3(bucket_name, zip_name, s3_key):
-    s3.upload_file(zip_name, bucket_name, s3_key)
-    print(f"Uploaded {zip_name} to s3://{bucket_name}/{s3_key}")
-    os.remove(zip_name)
-    print(f"Deleted local zip file: {zip_name}")
+    try:
+        s3.upload_file(zip_name, bucket_name, s3_key)
+        print(f"Uploaded {zip_name} to s3://{bucket_name}/{s3_key}")
+    except Exception as e:
+        print(f"Error uploading to S3: {e}")
+        return False
+    finally:
+        if os.path.exists(zip_name):
+            os.remove(zip_name)
+            print(f"Deleted local zip file: {zip_name}")
+            return True
 
 
 def deploy_stack(stack_name, template_body, parameters):
@@ -77,12 +91,21 @@ def deploy_stack(stack_name, template_body, parameters):
     waiter.wait(StackName=stack_name)
     print(f"Stack '{stack_name}' deployed successfully!")
 
-# === EXECUTION FLOW ===
-create_s3_bucket(S3_BUCKET, REGION)
-zip_lambda_function()
-upload_to_s3(S3_BUCKET, ZIP_FILE, S3_KEY)
 
-with open(TEMPLATE_FILE, 'r') as f:
-    template_body = f.read()
+def main():
+    if not create_s3_bucket(S3_BUCKET, REGION):
+        return
+    
+    if not zip_lambda_function():
+        return 
+    
+    if not upload_to_s3(S3_BUCKET, ZIP_FILE, S3_KEY):
+        return
 
-deploy_stack(STACK_NAME, template_body, params)
+    with open(TEMPLATE_FILE, 'r') as f:
+        template_body = f.read()
+
+    deploy_stack(STACK_NAME, template_body, params)
+
+if __name__ == "__main__":
+   main()
